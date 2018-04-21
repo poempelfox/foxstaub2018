@@ -30,7 +30,7 @@ AVRDMCU	= m32u4
 # Clock Frequency of the AVR. Needed for various calculations.
 CPUFREQ		= 8000000UL
 
-SRCS	= eeprom.c lufa/console.c main.c rfm69.c timers.c
+SRCS	= eeprom.c lufa/console.c main.c rfm69.c timers.c twi.c
 ifeq ($(SERIALCONSOLE), 1)
 # The serial console is the only thing needing lufa and adds the whole mess of this dependency.
 SRCS	+= lufa/LUFA/Drivers/USB/Core/USBTask.c lufa/LUFA/Drivers/USB/Core/AVR8/Endpoint_AVR8.c lufa/LUFA/Drivers/USB/Core/AVR8/EndpointStream_AVR8.c lufa/LUFA/Drivers/USB/Core/Events.c lufa/LUFA/Drivers/USB/Core/DeviceStandardReq.c lufa/LUFA/Drivers/USB/Core/AVR8/USBController_AVR8.c lufa/LUFA/Drivers/USB/Core/AVR8/USBInterrupt_AVR8.c lufa/Descriptors.c
