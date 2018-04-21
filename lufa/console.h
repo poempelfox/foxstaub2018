@@ -61,6 +61,7 @@ void console_printdec_noirq(uint8_t what);
 void console_printbin8_noirq(uint8_t what);
 
 /* These can be called with interrupts enabled (and will reenable them!) */
+void console_printchar(uint8_t c);
 void console_printtext(const uint8_t * what);
 void console_printpgm_P(PGM_P what);
 void console_printhex8(uint8_t what);

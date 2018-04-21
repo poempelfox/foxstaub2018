@@ -1,5 +1,5 @@
 /* This originally was the "VirtualSerial" example from the LUFA library.
- * It has been turned into a proper serial console for foxgeig2018.
+ * It has been turned into a proper serial console for foxstaub2018.
  * What follows is the original copyright notice, although probably not enough
  * of the old example remains to warrant that.
  */
@@ -60,9 +60,9 @@ static uint16_t outputtail = 0;
 static uint8_t escstatus = 0;
 static const uint8_t CRLF[] PROGMEM = "\r\n";
 static const uint8_t WELCOMEMSG[] PROGMEM = "\r\n"\
-                                   "\r\n ***************"\
-                                   "\r\n * foxgeig2018 *"\
-                                   "\r\n ***************"\
+                                   "\r\n ****************"\
+                                   "\r\n * foxstaub2018 *"\
+                                   "\r\n ****************"\
                                    "\r\n"\
                                    "\r\nAVR-libc: " __AVR_LIBC_VERSION_STRING__ " (" __AVR_LIBC_DATE_STRING__ ")"\
                                    "\r\nSoftware Version 0.1, Compiled " __DATE__ " " __TIME__;
@@ -518,6 +518,12 @@ void console_printpgm_noirq_P(PGM_P what) {
 
 /* These are wrappers for our internal functions, disabling IRQs before
  * calling them. */
+void console_printchar(uint8_t what) {
+  cli();
+  console_printchar_noirq(what);
+  sei();
+}
+
 void console_printtext(const uint8_t * what) {
   cli();
   console_printtext_noirq(what);
@@ -567,9 +573,10 @@ void console_init(void) { }
 void console_work(void) { }
 uint8_t console_isusbconfigured(void) { return 0; }
 void console_printchar_noirq(uint8_t c) { }
-void console_printtext(const uint8_t * what) { }
-void console_printpgm_P(PGM_P what) { }
-void console_printhex8(uint8_t what) { }
-void console_printdec(uint8_t what) { }
+void console_printchar(uint8_t c) { sei(); }
+void console_printtext(const uint8_t * what) { sei(); }
+void console_printpgm_P(PGM_P what) { sei(); }
+void console_printhex8(uint8_t what) { sei(); }
+void console_printdec(uint8_t what) { sei(); }
 
 #endif /* SERIALCONSOLE */
