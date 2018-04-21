@@ -14,8 +14,9 @@
 #include <util/delay.h>
 
 #include "eeprom.h"
-#include "rfm69.h"
 #include "lufa/console.h"
+#include "rfm69.h"
+#include "timers.h"
 
 /* The values last measured */
 /* Battery level. Range 0-1023, 1023 = our supply voltage * 2 = 6,6V
@@ -116,6 +117,7 @@ int main(void)
   
   loadsettingsfromeeprom();
   
+  timers_init();
   console_init();
   rfm69_initport();
   /* The RFM69 needs some time to start up (5 ms according to data sheet, we wait 10 to be sure) */
@@ -145,7 +147,7 @@ int main(void)
   while (1) {
     wdt_reset();
     PORTC |= (uint8_t)_BV(PC7);
-    curts = geiger_getticks();
+    curts = timers_getticks();
     tsdiff = curts - lastts;
     if (tsdiff >= transmitinterval) {
       /* Time to update values and send */
