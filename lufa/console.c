@@ -74,10 +74,10 @@ static const uint8_t PROMPT[] PROGMEM = "\r\n# ";
  * Note: Since we execute from interrupt context, we might occasionally
  * get corrupted values in the uint16_t and uint32_ts.
  */
-extern uint16_t batvolt;
 extern uint32_t pktssent;
-extern uint32_t geigcntavg1min;
-extern uint32_t geigcntavg60min;
+extern uint32_t pressure;
+extern int32_t temperature;
+extern uint16_t humidity;
 
 /* Contains the current baud rate and other settings of the virtual serial port. While this demo does not use
  *  the physical USART and thus does not use these settings, they must still be retained and returned to the host
@@ -334,29 +334,22 @@ static void console_inputchar(uint8_t inpb) {
           } else if (strcmp_P(inputbuf, PSTR("status")) == 0) {
             uint8_t tmpbuf[40];
             console_printpgm_noirq_P(PSTR("Status / last measured values:\r\n"));
-            console_printpgm_noirq_P(PSTR("LiPo battery voltage: "));
-            sprintf_P(tmpbuf, PSTR("%.2f"), (6.6 * batvolt) / 1023.0);
-            console_printtext_noirq(tmpbuf);
-            console_printpgm_noirq_P(PSTR("V\r\n"));
             console_printpgm_noirq_P(PSTR("Packets sent: "));
             sprintf_P(tmpbuf, PSTR("%10lu"), pktssent);
             console_printtext_noirq(tmpbuf);
             console_printpgm_noirq_P(PSTR("\r\n"));
-            console_printpgm_noirq_P(PSTR("Geiger counter,  1 min average: "));
-            if (geigcntavg1min > 0xfffff) {
-              console_printpgm_noirq_P(PSTR("(no valid data)"));
-            } else {
-              sprintf_P(tmpbuf, PSTR("%10lu"), geigcntavg1min);
-              console_printtext_noirq(tmpbuf);
-            }
-            console_printpgm_noirq_P(PSTR("\r\n"));
-            console_printpgm_noirq_P(PSTR("Geiger counter, 60 min average: "));
-            if (geigcntavg60min > 0xfffff) {
-              console_printpgm_noirq_P(PSTR("(no valid data)"));
-            } else {
-              sprintf_P(tmpbuf, PSTR("%10lu"), geigcntavg60min);
-              console_printtext_noirq(tmpbuf);
-            }
+            console_printpgm_noirq_P(PSTR("Pressure: "));
+            sprintf_P(tmpbuf, PSTR("%.3f"), (float)pressure / 25600.0);
+            console_printtext_noirq(tmpbuf);
+            console_printpgm_noirq_P(PSTR(" hPa\r\n"));
+            console_printpgm_noirq_P(PSTR("Temperature: "));
+            sprintf_P(tmpbuf, PSTR("%.2f"), (float)temperature / 100.0);
+            console_printtext_noirq(tmpbuf);
+            console_printpgm_noirq_P(PSTR(" degC\r\n"));
+            console_printpgm_noirq_P(PSTR("rel. Humidity: "));
+            sprintf_P(tmpbuf, PSTR("%3.2f"), (float)humidity / 1024.0);
+            console_printtext_noirq(tmpbuf);
+            console_printpgm_noirq_P(PSTR("%"));
           } else if (strncmp_P(inputbuf, PSTR("rfm69reg"), 8) == 0) {
             uint8_t star = 0x01;
             uint8_t endr = 0x4f;  /* Show all relevant ones by default */

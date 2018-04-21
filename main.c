@@ -20,15 +20,14 @@
 #include "timers.h"
 
 /* The values last measured */
-/* Battery level. Range 0-1023, 1023 = our supply voltage * 2 = 6,6V
- * We send this shifted to the right by two as uint8_t (because the lower two
- * bits are just noise anyways) */
-uint16_t batvolt = 0;
 /* How often did we send a packet? */
 uint32_t pktssent = 0;
-/* Geigercounter values */
-uint32_t geigcntavg1min = 0;
-uint32_t geigcntavg60min = 0;
+/* Pressure, in (Pascal * 256) */
+uint32_t pressure = 0;
+/* Temperature, in (degC * 100) */
+int32_t temperature = 0;
+/* Rel. Humidity, in (% * 1024) */
+uint16_t humidity = 0;
 
 /* This is just a fallback value, in case we cannot read this from EEPROM
  * on Boot */
@@ -72,7 +71,7 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
  * Byte  0: Startbyte (=0xCC)
  * Byte  1: Sensor-ID (0 - 255/0xff)
  * Byte  2: Number of data bytes that follow (6)
- * Byte  3: Sensortype (=0xf9 for FoxGeig)
+ * Byte  3: Sensortype (=0xf5 for FoxStaub)
  * Byte  4: CountsPerMinute for last minute, MSB
  * Byte  5: CountsPerMinute for last minute,
  * Byte  6: CountsPerMinute for last minute, LSB
@@ -87,14 +86,14 @@ void prepareframe(void)
   frametosend[ 0] = 0xCC;
   frametosend[ 1] = sensorid;
   frametosend[ 2] = 8; /* 8 bytes of data follow (CRC not counted) */
-  frametosend[ 3] = 0xf9; /* Sensor type: FoxGeig */
-  frametosend[ 4] = (geigcntavg1min >> 16) & 0xff;
-  frametosend[ 5] = (geigcntavg1min >>  8) & 0xff;
-  frametosend[ 6] = (geigcntavg1min >>  0) & 0xff;
-  frametosend[ 7] = (geigcntavg60min >> 16) & 0xff;
-  frametosend[ 8] = (geigcntavg60min >>  8) & 0xff;
-  frametosend[ 9] = (geigcntavg60min >>  0) & 0xff;
-  frametosend[10] = batvolt >> 2;
+  frametosend[ 3] = 0xf5; /* Sensor type: FoxStaub */
+  frametosend[ 4] = 0xff;
+  frametosend[ 5] = 0xff;
+  frametosend[ 6] = 0xff;
+  frametosend[ 7] = 0xff;
+  frametosend[ 8] = 0xff;
+  frametosend[ 9] = 0xff;
+  frametosend[10] = 0;
   frametosend[11] = calculatecrc(frametosend, 11);
 }
 
@@ -112,7 +111,7 @@ int main(void)
   uint16_t lastts = 0xf000; /* This forces an update immediately after start */
   uint16_t curts;
   uint16_t tsdiff;
-  uint8_t transmitinterval = 5; /* Transmitinterval in ticks of 6s, so 5 = 30s */
+  uint8_t transmitinterval = 15; /* Transmitinterval in ticks of 2.1s, so 15 = 31s */
   
   /* Initialize stuff */
   
@@ -154,23 +153,28 @@ int main(void)
     tsdiff = curts - lastts;
     if (tsdiff >= transmitinterval) {
       /* Time to update values and send */
-      /* FIXME */
+      bme280_readmeasuredvalues();
+      pressure = bme280_getpressure();
+      temperature = bme280_gettemperature();
+      humidity = bme280_gethumidity();
+      
+      bme280_startonemeasurement(); /* Start the next measurement */
       /* SEND */
       rfm69_setsleep(0);  /* This mainly turns on the oscillator again */
       prepareframe();
-      console_printpgm_P(PSTR(" TX "));
-      rfm69_sendarray(frametosend, 12);
+      /* console_printpgm_P(PSTR(" TX "));
+      rfm69_sendarray(frametosend, 12); */
       rfm69_setsleep(1);
       pktssent++;
       lastts = curts; /* Remember when we last sent a packet */
       /* We use the lower two bits of batvolt as the random noise that it is */
-      uint8_t rnd = batvolt & 3;
+      uint8_t rnd = /* FIXME */ 2;
       if (rnd == 3) {
-        transmitinterval = 6;
+        transmitinterval = 17;
       } else if (rnd == 0) {
-        transmitinterval = 4;
+        transmitinterval = 15;
       } else { /* 1 or 2 */
-        transmitinterval = 5;
+        transmitinterval = 16;
       }
     }
     console_work();
@@ -178,10 +182,9 @@ int main(void)
     if (!console_isusbconfigured()) {
       /* Don't go to sleep when USB is configured. Because then there is no
        * lack of power, and more importantly, we want the console to feel
-       * "snappy" and we can't get that if we sleep for 6 seconds. */
-      wdt_reset(); /* Buy us 8 seconds time because the next IRQ might only arrive in 6 seconds */
+       * "snappy" and we can't get that if we sleep for 2 second. */
+      wdt_reset(); /* Buy us 8 seconds time because the next IRQ might only arrive in 2 seconds */
       sleep_cpu(); /* Go to sleep until the next IRQ arrives */
     }
   }
 }
-
