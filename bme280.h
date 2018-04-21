@@ -18,8 +18,11 @@ void bme280_startonemeasurement(void);
 void bme280_readmeasuredvalues(void);
 
 /* Returns the values read on the last call of bme280_readmeasuredvalues */
+/* Returns pressure in (Pascal * 256), i.e. 256 would mean 1.00 Pascal */
 uint32_t bme280_getpressure(void);
-uint32_t bme280_gettemperature(void);
+/* Returns temperature in (degC * 100), i.e. 256 would mean 2.56 degrees Celsius */
+int32_t bme280_gettemperature(void);
+/* Returns humidity in (percent * 1024), i.e. 256 would mean 0.25% RH */
 uint16_t bme280_gethumidity(void);
 
 #endif /* _BME280_H_ */
