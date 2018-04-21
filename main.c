@@ -13,6 +13,7 @@
 #include <string.h>
 #include <util/delay.h>
 
+#include "bme280.h"
 #include "eeprom.h"
 #include "lufa/console.h"
 #include "rfm69.h"
@@ -124,6 +125,8 @@ int main(void)
   _delay_ms(10);
   rfm69_initchip();
   rfm69_setsleep(1);
+  /* The BME280 needs 2 ms startup, so should be ready now as well. */
+  bme280_init();
   
   /* Enable watchdog timer with a timeout of 8 seconds */
   wdt_enable(WDTO_8S); /* Longest possible on ATmega328P */
