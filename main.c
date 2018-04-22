@@ -17,6 +17,7 @@
 #include "eeprom.h"
 #include "lufa/console.h"
 #include "rfm69.h"
+#include "sds011.h"
 #include "timers.h"
 
 /* The values last measured */
@@ -62,7 +63,7 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
   return res;
 }
 
-/* Fill the frame to send with out collected data and a CRC.
+/* Fill the frame to send with our collected data and a CRC.
  * The protocol we use is that of a "CustomSensor" from the
  * FHEM LaCrosseItPlusReader sketch for the Jeelink.
  * So you'll just have to enable the support for CustomSensor in that sketch
@@ -72,27 +73,30 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
  * Byte  1: Sensor-ID (0 - 255/0xff)
  * Byte  2: Number of data bytes that follow (6)
  * Byte  3: Sensortype (=0xf5 for FoxStaub)
- * Byte  4: CountsPerMinute for last minute, MSB
- * Byte  5: CountsPerMinute for last minute,
- * Byte  6: CountsPerMinute for last minute, LSB
- * Byte  7: CountsPerMinute for last 60 minutes, MSB
- * Byte  8: CountsPerMinute for last 60 minutes,
- * Byte  9: CountsPerMinute for last 60 minutes, LSB
- * Byte 10: Battery voltage (0-255, 255 = 6.6V)
+ * Byte  4: Pressure, MSB
+ * Byte  5: Pressure       Pressure is in 1/256th Pascal.
+ * Byte  6: Pressure
+ * Byte  7: Pressure, LSB
+ * Byte  8: Temperature, MSB   The temperature is in 1/100th degrees C with an
+ * Byte  9: Temperature, LSB   offset of +100.00, so e.g. 12155 = 21.55 degC
+ * Byte 10: 
  * Byte 11: CRC
  */
 void prepareframe(void)
 {
+  uint16_t temptmp;
+  temptmp = (uint16_t)(temperature + 10000);
+  if (temperature < -10000) { temptmp = 0; }
   frametosend[ 0] = 0xCC;
   frametosend[ 1] = sensorid;
   frametosend[ 2] = 8; /* 8 bytes of data follow (CRC not counted) */
   frametosend[ 3] = 0xf5; /* Sensor type: FoxStaub */
-  frametosend[ 4] = 0xff;
-  frametosend[ 5] = 0xff;
-  frametosend[ 6] = 0xff;
-  frametosend[ 7] = 0xff;
-  frametosend[ 8] = 0xff;
-  frametosend[ 9] = 0xff;
+  frametosend[ 4] = (pressure >> 24) & 0xff;
+  frametosend[ 5] = (pressure >> 16) & 0xff;
+  frametosend[ 6] = (pressure >>  8) & 0xff;
+  frametosend[ 7] = (pressure >>  0) & 0xff;
+  frametosend[ 8] = (temptmp >> 8) & 0xff;
+  frametosend[ 9] = (temptmp >> 0) & 0xff;
   frametosend[10] = 0;
   frametosend[11] = calculatecrc(frametosend, 11);
 }
@@ -126,6 +130,8 @@ int main(void)
   rfm69_setsleep(1);
   /* The BME280 needs 2 ms startup, so should be ready now as well. */
   bme280_init();
+  /* As should the SDS011 */
+  sds011_init();
   
   /* Enable watchdog timer with a timeout of 8 seconds */
   wdt_enable(WDTO_8S); /* Longest possible on ATmega328P */
@@ -145,10 +151,10 @@ int main(void)
   sei();
 
   DDRC |= (uint8_t)_BV(PC7); /* PC7 is the LED pin, drive it */
+  PORTC &= (uint8_t)~_BV(PC7); /* turn it off. */
 
   while (1) {
     wdt_reset();
-    PORTC |= (uint8_t)_BV(PC7);
     curts = timers_getticks();
     tsdiff = curts - lastts;
     if (tsdiff >= transmitinterval) {
@@ -162,13 +168,13 @@ int main(void)
       /* SEND */
       rfm69_setsleep(0);  /* This mainly turns on the oscillator again */
       prepareframe();
-      /* console_printpgm_P(PSTR(" TX "));
-      rfm69_sendarray(frametosend, 12); */
+      console_printpgm_P(PSTR(" TX "));
+      rfm69_sendarray(frametosend, 12);
       rfm69_setsleep(1);
       pktssent++;
       lastts = curts; /* Remember when we last sent a packet */
-      /* We use the lower two bits of batvolt as the random noise that it is */
-      uint8_t rnd = /* FIXME */ 2;
+      /* We use the lowest two bits of pressure as random noise */
+      uint8_t rnd = pressure & 0x00000003;
       if (rnd == 3) {
         transmitinterval = 17;
       } else if (rnd == 0) {
@@ -178,7 +184,6 @@ int main(void)
       }
     }
     console_work();
-    PORTC &= (uint8_t)~_BV(PC7);
     if (!console_isusbconfigured()) {
       /* Don't go to sleep when USB is configured. Because then there is no
        * lack of power, and more importantly, we want the console to feel
