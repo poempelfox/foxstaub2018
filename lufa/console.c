@@ -342,14 +342,29 @@ static void console_inputchar(uint8_t inpb) {
             sprintf_P(tmpbuf, PSTR("%.3f"), (float)pressure / 25600.0);
             console_printtext_noirq(tmpbuf);
             console_printpgm_noirq_P(PSTR(" hPa\r\n"));
+            console_printpgm_noirq_P(PSTR("PressRAW: 0x"));
+            console_printhex8_noirq((pressure >> 24) & 0xff);
+            console_printhex8_noirq((pressure >> 16) & 0xff);
+            console_printhex8_noirq((pressure >>  8) & 0xff);
+            console_printhex8_noirq((pressure >>  0) & 0xff);
+            console_printpgm_noirq_P(PSTR("\r\n"));
             console_printpgm_noirq_P(PSTR("Temperature: "));
             sprintf_P(tmpbuf, PSTR("%.2f"), (float)temperature / 100.0);
             console_printtext_noirq(tmpbuf);
             console_printpgm_noirq_P(PSTR(" degC\r\n"));
+            console_printpgm_noirq_P(PSTR("TempRAW: 0x"));
+            console_printhex8_noirq((temperature >> 24) & 0xff);
+            console_printhex8_noirq((temperature >> 16) & 0xff);
+            console_printhex8_noirq((temperature >>  8) & 0xff);
+            console_printhex8_noirq((temperature >>  0) & 0xff);
+            console_printpgm_noirq_P(PSTR("\r\n"));
             console_printpgm_noirq_P(PSTR("rel. Humidity: "));
             sprintf_P(tmpbuf, PSTR("%3.2f"), (float)humidity / 1024.0);
             console_printtext_noirq(tmpbuf);
-            console_printpgm_noirq_P(PSTR("%"));
+            console_printpgm_noirq_P(PSTR("%\r\n"));
+            console_printpgm_noirq_P(PSTR("HumRAW: 0x"));
+            console_printhex8_noirq((humidity >> 8) & 0xff);
+            console_printhex8_noirq((humidity >> 0) & 0xff);
           } else if (strncmp_P(inputbuf, PSTR("rfm69reg"), 8) == 0) {
             uint8_t star = 0x01;
             uint8_t endr = 0x4f;  /* Show all relevant ones by default */
