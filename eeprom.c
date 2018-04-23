@@ -8,7 +8,7 @@
 #include "eeprom.h"
 
 /* The SensorID */
-#define THESENSORID 21
+#define THESENSORID 71
 /* Do not set these directly, set the define above */
 EEMEM uint8_t ee_sensorid = THESENSORID;
 EEMEM uint8_t ee_invsensorid = THESENSORID ^ 0xff;
