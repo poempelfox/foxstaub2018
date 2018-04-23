@@ -36,6 +36,10 @@ static const uint8_t PROGMEM cmd_sensoron[] = { 0xB4, 0x06, 0x01, 0x01 };
 /* Turn measurements off */
 static const uint8_t PROGMEM cmd_sensoroff[] = { 0xB4, 0x06, 0x01, 0x00 };
 
+/* where we store the values received from the sensor */
+static uint16_t pm2_5 = 0xffff; /* 0xffff = "invalid" */
+static uint16_t pm10 = 0xffff;
+
 /* Calculate the CRC of a packet.
  * You need to give this the address of the first byte that will be used
  * in the CRC, which is byte 2 (header, tail, and command ID do not go into
@@ -96,6 +100,14 @@ static void sendsds011cmd(PGM_P what)
   appendchar(0xAB);
 }
 
+static void processsdsdata(void)
+{
+  if (inputbuf[1] == 0xC0) { /* Sensor data */
+    pm2_5 = ((uint16_t)inputbuf[3] << 8) | inputbuf[2];
+    pm10 = ((uint16_t)inputbuf[5] << 8) | inputbuf[4];
+  }
+}
+
 /* Handler for TXC (TX Complete) IRQ */
 ISR(USART1_TX_vect)
 {
@@ -116,8 +128,8 @@ ISR(USART1_RX_vect)
   uint8_t inpb;
 
   inpb = UDR1;
-  console_printpgm_noirq_P(PSTR(" R"));
-  console_printhex8_noirq(inpb);
+  /* console_printpgm_noirq_P(PSTR(" R"));
+  console_printhex8_noirq(inpb); */
   if (inputpos > 0) { /* Has a packet already started? */
     inputbuf[inputpos] = inpb;
     inputpos++;
@@ -126,7 +138,7 @@ ISR(USART1_RX_vect)
         uint8_t crc = calcsds011crc(&inputbuf[2], 6);
         /* check "CRC" */
         if (crc == inputbuf[8]) {
-          /* FIXME process it */
+          processsdsdata();
         } else {
           /* invalid packet */
           console_printpgm_noirq_P(PSTR("!SDSCRC!"));
@@ -162,11 +174,34 @@ void sds011_setmeasurements(uint8_t ooo)
   sei();
 }
 
+uint16_t sds011_getlastpm2_5(void)
+{
+  uint16_t res;
+  cli();
+  res = pm2_5;
+  sei();
+  return res;
+}
+
+uint16_t sds011_getlastpm10(void)
+{
+  uint16_t res;
+  cli();
+  res = pm10;
+  sei();
+  return res;
+}
+
 void sds011_init(void)
 {
+  /* Enable pullup on our RX pin, really weird sh*t can happen if that is
+   * floating (receiving thousands of "0" bytes) */
+  PORTD |= _BV(PD2);
   /* Set Baud Rate */
-  UBRR1H = (uint8_t)(UBRRCALC >> 8);
-  UBRR1L = (uint8_t)(UBRRCALC);
+  UBRR1H = (uint8_t)((UBRRCALC >> 8) & 0xff);
+  UBRR1L = (uint8_t)((UBRRCALC >> 0) & 0xff);
+  /* clear any possible transmit complete flag */
+  UCSR1A = _BV(TXC1);
   /* Set 8 Bit mode, no parity, 1 stop bit, asynchronous */
   UCSR1C = _BV(UCSZ10) | _BV(UCSZ11);
   /* Enable Send and Receive and IRQs */

@@ -11,4 +11,11 @@ void sds011_init(void);
 /* Turn measurements on or off. */
 void sds011_setmeasurements(uint8_t ooo);
 
+/* Request measurement results from sensor */
+void sds011_requestresult(void);
+
+/* Fetch the data last received from the sensor */
+uint16_t sds011_getlastpm2_5(void);
+uint16_t sds011_getlastpm10(void);
+
 #endif /* _SDS011_H_ */
