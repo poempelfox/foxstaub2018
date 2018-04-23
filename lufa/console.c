@@ -78,6 +78,8 @@ extern uint32_t pktssent;
 extern uint32_t pressure;
 extern int32_t temperature;
 extern uint16_t humidity;
+extern uint16_t particulatematter2_5u;
+extern uint16_t particulatematter10u;
 
 /* Contains the current baud rate and other settings of the virtual serial port. While this demo does not use
  *  the physical USART and thus does not use these settings, they must still be retained and returned to the host
@@ -332,7 +334,7 @@ static void console_inputchar(uint8_t inpb) {
               }
             }
           } else if (strcmp_P(inputbuf, PSTR("status")) == 0) {
-            uint8_t tmpbuf[40];
+            uint8_t tmpbuf[20];
             console_printpgm_noirq_P(PSTR("Status / last measured values:\r\n"));
             console_printpgm_noirq_P(PSTR("Packets sent: "));
             sprintf_P(tmpbuf, PSTR("%10lu"), pktssent);
@@ -365,6 +367,15 @@ static void console_inputchar(uint8_t inpb) {
             console_printpgm_noirq_P(PSTR("HumRAW: 0x"));
             console_printhex8_noirq((humidity >> 8) & 0xff);
             console_printhex8_noirq((humidity >> 0) & 0xff);
+            console_printpgm_noirq_P(PSTR("\r\n"));
+            console_printpgm_noirq_P(PSTR("PM2.5: "));
+            sprintf_P(tmpbuf, PSTR("%5.1f"), ((float)particulatematter2_5u) / 10.0);
+            console_printtext_noirq(tmpbuf);
+            console_printpgm_noirq_P(PSTR(" ug/m^3\r\n"));
+            console_printpgm_noirq_P(PSTR("PM10:  "));
+            sprintf_P(tmpbuf, PSTR("%5.1f"), (float)particulatematter10u / 10.0);
+            console_printtext_noirq(tmpbuf);
+            console_printpgm_noirq_P(PSTR(" ug/m^3"));
           } else if (strncmp_P(inputbuf, PSTR("rfm69reg"), 8) == 0) {
             uint8_t star = 0x01;
             uint8_t endr = 0x4f;  /* Show all relevant ones by default */
