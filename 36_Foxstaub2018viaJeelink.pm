@@ -150,7 +150,7 @@ sub Foxstaub2018viaJeelink_Parse($$) {
     # Byte  7: Pressure, LSB
     # Byte  8: Temperature, MSB   The temperature is in 1/100th degrees C with an
     # Byte  9: Temperature, LSB   offset of +100.00, so e.g. 12155 = 21.55 degC
-    # Byte 10: rel.Humidity, MSB     humidity is in 1/1024th percent.
+    # Byte 10: rel.Humidity, MSB     humidity is in 1/512th percent.
     # Byte 11: rel.Humidity, LSB
     # Byte 12: PM2.5, MSB       particulate matter 2.5 is in 1/10th ug/m^3
     # Byte 13: PM2.5, LSB
@@ -176,9 +176,9 @@ sub Foxstaub2018viaJeelink_Parse($$) {
     my $tempraw = ((($bytes[6] << 8) | ($bytes[7] << 0)) - 10000);
     $temperature = sprintf("%.2f", $tempraw / 100.0);
     my $humraw = (($bytes[8] << 8) | ($bytes[9] << 0));
-    $relhum = sprintf("%.1f", $humraw / 1024.0);
-    $pm2_5 = (($bytes[10] << 8) | ($bytes[11] << 0)) / 10.0;
-    $pm10 = (($bytes[12] << 8) | ($bytes[13] << 0)) / 10.0;
+    $relhum = sprintf("%.1f", $humraw / 512.0);
+    $pm2_5 = sprintf("%.1f", (($bytes[10] << 8) | ($bytes[11] << 0)) / 10.0);
+    $pm10 = sprintf("%.1f", (($bytes[12] << 8) | ($bytes[13] << 0)) / 10.0);
   } else {
     DoTrigger($name, "UNKNOWNCODE $msg");
     return "";
