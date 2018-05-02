@@ -27,7 +27,7 @@ uint32_t pktssent = 0;
 uint32_t pressure = 0;
 /* Temperature, in (degC * 100) */
 int32_t temperature = 0;
-/* Rel. Humidity, in (% * 1024) */
+/* Rel. Humidity, in (% * 512) */
 uint16_t humidity = 0;
 /* Particulate matter measurements. in (PMn * 10) ug/m^3 */
 /* 0xffff marks it as invalid, this value can never be measured as it's far
@@ -89,7 +89,7 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
  * Byte  7: Pressure, LSB
  * Byte  8: Temperature, MSB   The temperature is in 1/100th degrees C with an
  * Byte  9: Temperature, LSB   offset of +100.00, so e.g. 12155 = 21.55 degC
- * Byte 10: rel.Humidity, MSB     humidity is in 1/1024th percent.
+ * Byte 10: rel.Humidity, MSB     humidity is in 1/512th percent.
  * Byte 11: rel.Humidity, LSB
  * Byte 12: PM2.5, MSB       particulate matter 2.5 is in 1/10th ug/m^3
  * Byte 13: PM2.5, LSB

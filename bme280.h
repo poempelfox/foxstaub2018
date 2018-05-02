@@ -22,7 +22,7 @@ void bme280_readmeasuredvalues(void);
 uint32_t bme280_getpressure(void);
 /* Returns temperature in (degC * 100), i.e. 256 would mean 2.56 degrees Celsius */
 int32_t bme280_gettemperature(void);
-/* Returns humidity in (percent * 1024), i.e. 256 would mean 0.25% RH */
+/* Returns humidity in (percent * 512), i.e. 256 would mean 0.50% RH */
 uint16_t bme280_gethumidity(void);
 
 #endif /* _BME280_H_ */

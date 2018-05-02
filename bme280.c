@@ -232,7 +232,7 @@ void bme280_readmeasuredvalues(void)
   var1 = (var1 - (((((var1 >> 15) * (var1 >> 15)) >> 7) * ((int32_t)bme280_dig_H1)) >> 4));
   if (var1 < 0) { var1 = 0; }
   if (var1 > 419430400) { var1 = 419430400; }
-  bme280_lasthum = ((uint32_t)var1 >> 12);
+  bme280_lasthum = ((uint32_t)var1 >> 13);
 }
 
 uint32_t bme280_getpressure(void)
