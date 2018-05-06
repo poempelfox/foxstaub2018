@@ -4,15 +4,15 @@
 # sensordata from FHEM and (if there IS current data) then reports it to
 # the luftdaten.info API. You should probably execute this from cron every
 # two to three minutes.
-# Please note that for this to work you will absolutely need to set a unique ID
-# below. And it really really needs to be unique, so don't use '42' or such
-# nonsense, use a truly random number.
 
 # Settings
 
 # The unique ID of this sensor. Use at least 8 random digits.
 # The sensor will need to be registered at luftdaten.info with the
-# Chip-ID "foxstaub-THISNUMBER".
+# Chip-ID "foxstaub-THISNUMBER" (see their webpage on how to register sensors).
+# Please note that for this to work you will absolutely need to set a UNIQUE ID
+# below. And it really really needs to be unique, so don't use '42' or such
+# nonsense, use a truly random number, 8 to 10 digits.
 $sensorid = 'INVALID1';
 
 # Where is FHEM?
