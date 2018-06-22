@@ -31,9 +31,14 @@ pollution.
   just fine with using normal jumper wire connectors.
 * Two "Marley HT" pipe bends are used as the case, as in the luftdaten.info project.  
   However, the DN75 size they recommend wasn't available, so I used DN90 instead.
-* "Goal Zero Guide 10 Plus Power Bank" for storing the power
-* (5m) Micro USB power cable for getting the power from the power bank to the sensor
-* FIXME solarzelle und schaltung
+* 12V AGM battery for storing the power (I used a "Offgridtec AGM Solar Batterie  
+  extrem zyklenfest 12 Ah 12V" off Amazon)
+* (5m) Micro USB power cable for getting the power from the battery to the sensor
+* solar charge controller with USB output (I used a "LS0512EU 5A" off Amazon)
+* a solar panel big enough to charge the battery even when it's not sunny (I  
+  used a "Suaoki Solar Autobatterie Panel Ladegeraet 18W 18V" off Amazon)
+* (5m) cable for connecting the solar panel to the charge controller
+* fuse to prevent short circuits from making things go up in smoke
 
 
 ## Power
@@ -45,13 +50,22 @@ for 120 seconds because that increases the sensor life) and actual consumption
 seems to be less than what the datasheet claims.
 
 The microcontroller-board actually would have a LiPo charger circuit onboard,
-so you could just connect a somewhat large LiPo battery and be done with it.
+so you could just connect a somewhat large LiPo battery and be done with it
+(you'd need to generate the 5V for the SDS011 through a boost converter from
+the microcontroller-boards 3.3V output though).
 However, I did not like the idea of putting a temperamental LiPo battery into a
 tiny case that can heat to 50+ degrees when hit by the sun, and cool below -20
-in winter. Instead, I used a power bank with four NiMH batteries for storing
-the power, and it's not right where the sensor is, but instead it's connected
-by 5 meters of cable and stored safely in the closet adjacent to my balcony
-where it is protected from the weather.
+in winter. Instead, the plan was to use a "Goal Zero Guide 10 Plus" power bank
+with four NiMH batteries for storing the power. However, it turned out to be
+impossible to find any 6V solar panel that would be big enough to charge that
+power bank and rigid enough to be mounted on my balcony. It seems solar panels
+only come in two flavours: 6V and utter crap (mechanically), or 12+V.
+
+So sadly, instead of the nice and compact power bank,
+I had to use a 12V AGM battery and matching solar charge controller with
+USB output. These parts are not right where the sensor and the solar panel are,
+but instead they're connected by 5 meters of cable and stored safely in the
+closet adjacent to my balcony where they are protected from the weather.
 
 
 ## Wireless protocol
