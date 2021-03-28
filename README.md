@@ -23,7 +23,7 @@ pollution.
 ## Part list / BOM
 
 * Adafruit Feather 32U4 RFM69HCW (868 MHz variant)
-* Sparkfun BME280 breakout
+* Sparkfun BME280 breakout - later replaced with a noname BME280 breakout after the first BME280 died. Note that depending on which breakout module you use you might need to change the I2C-address in bme280.c to match your module.
 * SDS011 air quality sensor
 * JST XH 7pin plug to connect the SDS011.  
   I used Voelkner #D17687 (as the hull of the plug) and #D16379 (as the pins
@@ -36,7 +36,8 @@ pollution.
 * (5m) Micro USB power cable for getting the power from the battery to the sensor
 * solar charge controller with USB output (I used a "LS0512EU 5A" off Amazon)
 * a solar panel big enough to charge the battery even when it's not sunny (I  
-  used a "Suaoki Solar Autobatterie Panel Ladegeraet 18W 18V" off Amazon)
+  used a "Suaoki Solar Autobatterie Panel Ladegeraet 18W 18V" off Amazon. This  
+  is a thin, bendable module that I mounted onto a wooden board for stability.)
 * (5m) cable for connecting the solar panel to the charge controller
 * fuse to prevent short circuits from making things go up in smoke
 
@@ -114,3 +115,4 @@ error message `internal compiler error: in push_reload, at reload.c:1360`.
 As a workaround, you can add `-fno-move-loop-invariants` to the compiler
 flags. Using this just for console.c is enough, for the rest of the source gcc
 does not need this workaround.
+
