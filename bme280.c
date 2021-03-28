@@ -8,7 +8,7 @@
 #include "bme280.h"
 #include "twi.h"
 
-#define BME280_I2C_ADDR (0x77 << 1)
+#define BME280_I2C_ADDR (0x76 << 1)
 
 static uint32_t bme280_lastpress = 0;
 static  int32_t bme280_lasttemp  = 0;
