@@ -13,11 +13,13 @@
 #include <string.h>
 #include <util/delay.h>
 
-#include "bme280.h"
+#include "adc.h"
 #include "eeprom.h"
+#include "lps25hb.h"
 #include "lufa/console.h"
 #include "rfm69.h"
 #include "sds011.h"
+#include "sht3x.h"
 #include "timers.h"
 
 /* The values last measured */
@@ -34,6 +36,7 @@ uint16_t humidity = 0;
  * outside the sensors range */
 uint16_t particulatematter2_5u = 0xffff;
 uint16_t particulatematter10u = 0xffff;
+uint8_t batvolt = 0;
 
 /* This is just a fallback value, in case we cannot read this from EEPROM
  * on Boot */
@@ -81,43 +84,39 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
  *
  * Byte  0: Startbyte (=0xCC)
  * Byte  1: Sensor-ID (0 - 255/0xff)
- * Byte  2: Number of data bytes that follow (6)
+ * Byte  2: Number of data bytes that follow (13)
  * Byte  3: Sensortype (=0xf5 for FoxStaub)
- * Byte  4: Pressure, MSB
- * Byte  5: Pressure       Pressure is in 1/256th Pascal.
- * Byte  6: Pressure
- * Byte  7: Pressure, LSB
- * Byte  8: Temperature, MSB   The temperature is in 1/100th degrees C with an
- * Byte  9: Temperature, LSB   offset of +100.00, so e.g. 12155 = 21.55 degC
- * Byte 10: rel.Humidity, MSB     humidity is in 1/512th percent.
- * Byte 11: rel.Humidity, LSB
- * Byte 12: PM2.5, MSB       particulate matter 2.5 is in 1/10th ug/m^3
- * Byte 13: PM2.5, LSB
- * Byte 14: PM10, MSB
- * Byte 15: PM10, LSB
- * Byte 16: CRC
+ * Byte  4: Pressure, MSB    (raw value from LPS25HB)
+ * Byte  5: Pressure
+ * Byte  6: Pressure, LSB
+ * Byte  7: Temperature, MSB   (raw value from SHT31)
+ * Byte  8: Temperature, LSB
+ * Byte  9: rel.Humidity, MSB  (raw value from SHT31)
+ * Byte 10: rel.Humidity, LSB
+ * Byte 11: PM2.5, MSB       particulate matter 2.5 is in 1/10th ug/m^3
+ * Byte 12: PM2.5, LSB
+ * Byte 13: PM10, MSB
+ * Byte 14: PM10, LSB
+ * Byte 15: CRC
  */
 void prepareframe(void)
 {
-  uint16_t temptmp;
-  temptmp = (uint16_t)(temperature + 10000);
-  if (temperature < -10000) { temptmp = 0; }
   frametosend[ 0] = 0xCC;
   frametosend[ 1] = sensorid;
   frametosend[ 2] = 13; /* 13 bytes of data follow (CRC not counted) */
   frametosend[ 3] = 0xf5; /* Sensor type: FoxStaub */
-  frametosend[ 4] = (pressure >> 24) & 0xff;
-  frametosend[ 5] = (pressure >> 16) & 0xff;
-  frametosend[ 6] = (pressure >>  8) & 0xff;
-  frametosend[ 7] = (pressure >>  0) & 0xff;
-  frametosend[ 8] = (temptmp >> 8) & 0xff;
-  frametosend[ 9] = (temptmp >> 0) & 0xff;
-  frametosend[10] = (humidity >> 8) & 0xff;
-  frametosend[11] = (humidity >> 0) & 0xff;
-  frametosend[12] = (particulatematter2_5u >> 8) & 0xff;
-  frametosend[13] = (particulatematter2_5u >> 0) & 0xff;
-  frametosend[14] = (particulatematter10u >> 8) & 0xff;
-  frametosend[15] = (particulatematter10u >> 0) & 0xff;
+  frametosend[ 4] = (pressure >> 16) & 0xff;
+  frametosend[ 5] = (pressure >>  8) & 0xff;
+  frametosend[ 6] = (pressure >>  0) & 0xff;
+  frametosend[ 7] = (temperature >> 8) & 0xff;
+  frametosend[ 8] = (temperature >> 0) & 0xff;
+  frametosend[ 9] = (humidity >> 8) & 0xff;
+  frametosend[10] = (humidity >> 0) & 0xff;
+  frametosend[11] = (particulatematter2_5u >> 8) & 0xff;
+  frametosend[12] = (particulatematter2_5u >> 0) & 0xff;
+  frametosend[13] = (particulatematter10u >> 8) & 0xff;
+  frametosend[14] = (particulatematter10u >> 0) & 0xff;
+  frametosend[15] = batvolt;
   frametosend[16] = calculatecrc(frametosend, 16);
 }
 
@@ -143,6 +142,7 @@ int main(void)
   
   loadsettingsfromeeprom();
   
+  adc_init();
   timers_init();
   console_init();
   rfm69_initport();
@@ -150,8 +150,8 @@ int main(void)
   _delay_ms(10);
   rfm69_initchip();
   rfm69_setsleep(1);
-  /* The BME280 needs 2 ms startup, so should be ready now as well. */
-  bme280_init();
+  sht3x_init();
+  lps25hb_init();
   
   /* Enable watchdog timer with a timeout of 8 seconds */
   wdt_enable(WDTO_8S); /* Longest possible on ATmega328P */
@@ -162,8 +162,8 @@ int main(void)
   PORTE &= (uint8_t)~_BV(PE6);
   DDRE &= (uint8_t)~_BV(PE6);
   /* Turn off unused stuff on the AVR via PRR registers */
-  /* We don't use Timer0 and the ADC*/
-  PRR0 |= _BV(PRTIM0) | _BV(PRADC);
+  /* We don't use Timer0 */
+  PRR0 |= _BV(PRTIM0);
   /* We don't use Timer3+4. There seems to be a bug in
    * avr-libc on Ubuntu 16.04, it doesn't define PRTIM4 but instead
    * PRTIM2 for a nonexistant Timer2. Therefore we cannot use the
@@ -171,6 +171,10 @@ int main(void)
   PRR1 |= _BV(/* PRTIM4 */ 4) | _BV(PRTIM3);
   DDRC |= (uint8_t)_BV(PC7); /* PC7 is the LED pin, drive it */
   PORTC &= (uint8_t)~_BV(PC7); /* turn it off. */
+  /* Disable digital input registers for ADC pins. We don't use any of
+   * the ADC pins for digital input and only use ADC4 for ADC. */
+  DIDR0 |= _BV(ADC7D) | _BV(ADC6D) | _BV(ADC5D) | _BV(ADC4D) | _BV(ADC1D) | _BV(ADC0D);
+  DIDR2 |= _BV(ADC13D) | _BV(ADC12D) | _BV(ADC11D) | _BV(ADC10D) | _BV(ADC9D) | _BV(ADC8D);
 
   /* The SDS011 needs a LOT longer to start. So lets sleep for some more
    * time and then try to init it. */
@@ -190,19 +194,40 @@ int main(void)
     curts = timers_getticks();
     tsdiff = curts - lasttxts;
     if (tsdiff >= transmitinterval) {
+      struct sht3xdata temphum;
+      struct lps25hbdata lps25press;
       /* Time to update values and send */
-      bme280_readmeasuredvalues();
-      pressure = bme280_getpressure();
-      temperature = bme280_gettemperature();
-      humidity = bme280_gethumidity();
+      adc_power(1);
+      adc_start();
+      sht3x_read(&temphum);
+      if (temphum.valid) {
+        temperature = temphum.temp;
+        humidity = temphum.hum;
+      } else {
+        /* FIXME best values for marking as invalid? */
+        temperature = 0xffff;
+        humidity = 0xffff;
+      }
+      /* FIXME add LPS25HB here */
+      lps25hb_read(&lps25press);
+      if (lps25press.valid) {
+        pressure = ((uint32_t)lps25press.pressure[2] << 16)
+                 | ((uint32_t)lps25press.pressure[1] <<  8)
+                 | lps25press.pressure[0];
+      } else {
+        pressure = 0xffffff;
+      }
       particulatematter2_5u = sds011_getlastpm2_5();
       particulatematter10u = sds011_getlastpm10();
-      bme280_startonemeasurement(); /* Start the next measurement */
+      sht3x_startmeas(); /* Start the next measurement */
+      lps25hb_startmeas();
+      batvolt = adc_read() >> 2;
+      adc_power(0);
       /* SEND */
       rfm69_setsleep(0);  /* This mainly turns on the oscillator again */
       prepareframe();
       console_printpgm_P(PSTR(" TX "));
-      rfm69_sendarray(frametosend, 17);
+      rfm69_sendarray(frametosend, 18);
       rfm69_setsleep(1);
       pktssent++;
       lasttxts = curts; /* Remember when we last sent a packet */

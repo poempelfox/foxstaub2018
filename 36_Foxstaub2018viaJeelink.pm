@@ -138,6 +138,7 @@ sub Foxstaub2018viaJeelink_Parse($$) {
   my $relhum = -1.0;
   my $pm2_5 = -1.0;
   my $pm10 = -1.0;
+  my $batvolt = -1.0;
 
   if ($msg =~ m/^OK CC /) {
     # OK CC 71 245 1 128 155 192 48 46 234 0 0 16 0 17
@@ -170,15 +171,22 @@ sub Foxstaub2018viaJeelink_Parse($$) {
     #Log3 $name, 3, "$name: $msg cnt ".int(@bytes)." addr ".$bytes[0];
 
     $addr = sprintf( "%02x", $bytes[0] );
-    my $pressraw = (($bytes[2] << 24) | ($bytes[3] << 16)
-                  | ($bytes[4] <<  8) | ($bytes[5] <<  0));
-    $pressure = sprintf("%.3f", $pressraw / 25600.0); # in hPa!
-    my $tempraw = ((($bytes[6] << 8) | ($bytes[7] << 0)) - 10000);
-    $temperature = sprintf("%.2f", $tempraw / 100.0);
-    my $humraw = (($bytes[8] << 8) | ($bytes[9] << 0));
-    $relhum = sprintf("%.1f", $humraw / 512.0);
-    $pm2_5 = sprintf("%.1f", (($bytes[10] << 8) | ($bytes[11] << 0)) / 10.0);
-    $pm10 = sprintf("%.1f", (($bytes[12] << 8) | ($bytes[13] << 0)) / 10.0);
+    my $pressraw = (($bytes[2] << 16)
+                  | ($bytes[3] <<  8) | ($bytes[4] <<  0));
+    if ($pressraw != 0xffffff) {
+      $pressure = sprintf("%.3f", $pressraw / 4096.0); # in hPa!
+    }
+    my $tempraw = (($bytes[5] << 8) | ($bytes[6] << 0));
+    if ($tempraw != 0xffff) {
+      $temperature = sprintf("%.2f", (-45.00 + 175.0 * ($tempraw / 65535.0)));
+    }
+    my $humraw = (($bytes[7] << 8) | ($bytes[8] << 0));
+    if ($humraw != 0xffff) {
+      $relhum = sprintf("%.1f", (100.0 * ($humraw / 65535.)));
+    }
+    $pm2_5 = sprintf("%.1f", (($bytes[9] << 8) | ($bytes[10] << 0)) / 10.0);
+    $pm10 = sprintf("%.1f", (($bytes[11] << 8) | ($bytes[12] << 0)) / 10.0);
+    $batvolt = ($bytes[13] / 100.0) * 11.0;
   } else {
     DoTrigger($name, "UNKNOWNCODE $msg");
     return "";
@@ -238,6 +246,9 @@ sub Foxstaub2018viaJeelink_Parse($$) {
   if (($pm10 >= 0) && ($pm10 < 1000)) { # This is the sensors range
     readingsBulkUpdate($rhash, "pm10", $pm10);
   }
+  if (($batvolt > 0.0) && ($batvolt < 25.0)) { # Could be valid
+    readingsBulkUpdate($rhash, "batvolt", $batvolt);
+  }
 
   readingsEndUpdate($rhash,1);
 
@@ -296,12 +307,16 @@ sub Foxstaub2018viaJeelink_Parse($$) {
   <a name="Foxstaub2018viaJeelink_Readings"></a>
   <b>Readings</b>
   <ul>
+    <li>temperature</li>
+    <li>humidity</li>
+    <li>pressure (hPa)<br>
+      the athmospheric pressure in hecto-Pascal</li>
+    <li>PM 2.5<br>
+      Particulate Matter 2.5 micro-meter value from the SDS011 dust sensor</li>
+    <li>PM 10<br>
+      Particulate Matter 2.5 micro-meter value from the SDS011 dust sensor</li>
     <li>batvolt (V)<br>
-      the battery voltage of the LiPo battery in volts.</li>
-    <li>cpm1min<br>
-      the radiation measurement for the last minute, in Counts Per Minute.</li>
-    <li>cpm60min<br>
-      the radiation measurement averaged over the last 60 minutes, in Counts Per Minute.</li>
+      the battery voltage of the battery in volts.</li>
   </ul><br>
 
   <a name="Foxstaub2018viaJeelink_Attr"></a>
