@@ -179,10 +179,8 @@ sub Foxstaub2018viaJeelink_Parse($$) {
     my $tempraw = (($bytes[5] << 8) | ($bytes[6] << 0));
     if ($tempraw != 0xffff) {
       $temperature = sprintf("%.2f", (-45.00 + 175.0 * ($tempraw / 65535.0)));
-    }
-    my $humraw = (($bytes[7] << 8) | ($bytes[8] << 0));
-    if ($humraw != 0xffff) {
-      $relhum = sprintf("%.1f", (100.0 * ($humraw / 65535.)));
+      my $humraw = (($bytes[7] << 8) | ($bytes[8] << 0));
+      $relhum = sprintf("%.1f", (100.0 * ($humraw / 65535.0)));
     }
     $pm2_5 = sprintf("%.1f", (($bytes[9] << 8) | ($bytes[10] << 0)) / 10.0);
     $pm10 = sprintf("%.1f", (($bytes[11] << 8) | ($bytes[12] << 0)) / 10.0);
