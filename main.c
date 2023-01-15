@@ -97,7 +97,8 @@ static uint8_t calculatecrc(uint8_t * data, uint8_t len)
  * Byte 12: PM2.5, LSB
  * Byte 13: PM10, MSB
  * Byte 14: PM10, LSB
- * Byte 15: CRC
+ * Byte 15: battery voltage
+ * Byte 16: CRC
  */
 void prepareframe(void)
 {
@@ -204,7 +205,6 @@ int main(void)
         temperature = temphum.temp;
         humidity = temphum.hum;
       } else {
-        /* FIXME best values for marking as invalid? */
         temperature = 0xffff;
         humidity = 0xffff;
       }
