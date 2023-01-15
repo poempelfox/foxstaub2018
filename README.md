@@ -1,5 +1,5 @@
 
-# FoxStaub 2018
+# FoxStaub 2018 - 2022 edition
 
 (FIXME: add picture)
 
@@ -23,7 +23,9 @@ pollution.
 ## Part list / BOM
 
 * Adafruit Feather 32U4 RFM69HCW (868 MHz variant)
-* Sparkfun BME280 breakout - later replaced with a noname BME280 breakout after the first BME280 died. Note that depending on which breakout module you use you might need to change the I2C-address in bme280.c to match your module.
+* Adafruit SHT31 (temperature/humidity sensor) breakout
+* ClosedCube LPS25HB (pressure sensor) breakout
+* Note that the original version of this, built in 2018, used a BME280 instead of the SHT31 and the LPS25HB. After two of these died within just 5 years (after reporting utter nonsense in the weeks or months before), I have decided these are not suitable sensors, and replaced them.
 * SDS011 air quality sensor
 * JST XH 7pin plug to connect the SDS011.  
   I used Voelkner #D17687 (as the hull of the plug) and #D16379 (as the pins
@@ -31,8 +33,10 @@ pollution.
   just fine with using normal jumper wire connectors.
 * Two "Marley HT" pipe bends are used as the case, as in the luftdaten.info project.  
   However, the DN75 size they recommend wasn't available, so I used DN90 instead.
-* 12V AGM battery for storing the power (I used a "Offgridtec AGM Solar Batterie  
-  extrem zyklenfest 12 Ah 12V" off Amazon)
+* 12V AGM battery for storing the power. I originally used a "Offgridtec AGM Solar
+  Batterie extrem zyklenfest 12 Ah 12V" off Amazon, but this proved to be too small
+  for the winter, always running out of power around December. This has been upgraded
+  to a 32 Ah battery in January 2023, we'll see how that one works out.
 * (5m) Micro USB power cable for getting the power from the battery to the sensor
 * solar charge controller with USB output (I used a "LS0512EU 5A" off Amazon)
 * a solar panel big enough to charge the battery even when it's not sunny (I  
@@ -92,18 +96,18 @@ The format of the packets we send is this:
 |   1  | Sensor-ID (in the range 0 - 255/0xff) |
 |   2  | Number of data bytes that follow (13) |
 |   3  | Sensortype (=0xf5 for FoxStaub) |
-|   4  | Pressure, MSB.  Pressure is in 1/256th Pascal. |
+|   4  | Pressure, MSB. Raw value from LPS25HB. |
 |   5  | Pressure cont. |
-|   6  | Pressure cont. |
-|   7  | Pressure, LSB |
-|   8  | Temperature, MSB.  Temperature is in 1/100th degrees C with an offset of +100.00, so e.g. 12155 = 21.55 degC |
-|   9  | Temperature, LSB |
-|  10  | rel.Humidity, MSB.  Relative Humidity is in 1/512th percent. |
-|  11  | rel.Humidity, LSB |
-|  12  | PM2.5, MSB.  Particulate Matter 2.5u is in 1/10th ug/m^3 |
-|  13  | PM2.5, LSB |
-|  14  | PM10, MSB.  Particulate Matter 10u is in 1/10th ug/m^3 |
-|  15  | PM10, LSB |
+|   6  | Pressure, LSB |
+|   7  | Temperature, MSB.  Raw value from SHT31. Formula for converting to degree celsius (value / 65535) * 175 - 45 |
+|   8  | Temperature, LSB |
+|   9  | rel.Humidity, MSB.  Raw value from SHT31. 0 == 0%, 65535 == 100% |
+|  10  | rel.Humidity, LSB |
+|  11  | PM2.5, MSB.  Particulate Matter 2.5u is in 1/10th ug/m^3 |
+|  12  | PM2.5, LSB |
+|  13  | PM10, MSB.  Particulate Matter 10u is in 1/10th ug/m^3 |
+|  14  | PM10, LSB |
+|  15  | Battery voltage. This is measured through a voltage divider, with 1 MOhm towards GND, and 10 MOhm towards '+'. The ADC runs with a reference voltage of 2.56 volts, meaning 255 would be 2.56 volts, thus the formula for converting this value into volts is: value * 0.11 |
 |  16  | CRC |
 
 
